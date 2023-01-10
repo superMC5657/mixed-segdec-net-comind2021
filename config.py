@@ -50,8 +50,8 @@ class Config:
         if self.NUM_SEGMENTED is None:
             raise Exception("Missing NUM_SEGMENTED!")
         if self.DATASET == 'KSDD':
-            self.INPUT_WIDTH = 512
-            self.INPUT_HEIGHT = 1408
+            self.INPUT_WIDTH = 672#512
+            self.INPUT_HEIGHT = 2016#1408
             self.INPUT_CHANNELS = 1
 
             if self.TRAIN_NUM is None:

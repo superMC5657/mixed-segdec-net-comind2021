@@ -2,6 +2,7 @@ import math
 import torch
 import torch.nn as nn
 from torch.nn import init
+from crossformer import CrossFormer
 
 BATCHNORM_TRACK_RUNNING_STATS = False
 BATCHNORM_MOVING_AVERAGE_DECAY = 0.9997
@@ -59,19 +60,36 @@ class SegDecNet(nn.Module):
         self.input_width = input_width
         self.input_height = input_height
         self.input_channels = input_channels
-        self.volume = nn.Sequential(_conv_block(self.input_channels, 32, 5, 2),
-                                    # _conv_block(32, 32, 5, 2), # Has been accidentally left out and remained the same since then
-                                    nn.MaxPool2d(2),
-                                    _conv_block(32, 64, 5, 2),
-                                    _conv_block(64, 64, 5, 2),
-                                    _conv_block(64, 64, 5, 2),
-                                    nn.MaxPool2d(2),
-                                    _conv_block(64, 64, 5, 2),
-                                    _conv_block(64, 64, 5, 2),
-                                    _conv_block(64, 64, 5, 2),
-                                    _conv_block(64, 64, 5, 2),
-                                    nn.MaxPool2d(2),
-                                    _conv_block(64, 1024, 15, 7))
+        # self.volume = nn.Sequential(_conv_block(self.input_channels, 32, 5, 2),
+        #                             # _conv_block(32, 32, 5, 2), # Has been accidentally left out and remained the same since then
+        #                             nn.MaxPool2d(2),
+        #                             _conv_block(32, 64, 5, 2),
+        #                             _conv_block(64, 64, 5, 2),
+        #                             _conv_block(64, 64, 5, 2),
+        #                             nn.MaxPool2d(2),
+        #                             _conv_block(64, 64, 5, 2),
+        #                             _conv_block(64, 64, 5, 2),
+        #                             _conv_block(64, 64, 5, 2),
+        #                             _conv_block(64, 64, 5, 2),
+        #                             nn.MaxPool2d(2),
+        #                             _conv_block(64, 1024, 15, 7))
+
+        self.volume = CrossFormer(img_size=[self.input_height, self.input_width],
+                                  patch_size=[4, 8, 16, 32],
+                                  in_chans=1,
+                                  embed_dim=128,
+                                  depths=[2, 2, 18, 2],
+                                  num_heads=[4, 8, 16, 32],
+                                  group_size=[7, 7, 7, 7],
+                                  mlp_ratio=4,
+                                  qkv_bias=True,
+                                  qk_scale=None,
+                                  drop_rate=0.0,
+                                  drop_path_rate=0.5,
+                                  ape=False,
+                                  patch_norm=True,
+                                  use_checkpoint=False,
+                                  merge_size=[[2, 4], [2, 4], [2, 4]])
 
         self.seg_mask = nn.Sequential(
             Conv2d_init(in_channels=1024, out_channels=1, kernel_size=1, padding=0, bias=False),
@@ -104,7 +122,12 @@ class SegDecNet(nn.Module):
         self.glob_avg_lr_multiplier_mask = (torch.ones((1,)) * multiplier).to(self.device)
 
     def forward(self, input):
+        # volume = self.volume(input)
         volume = self.volume(input)
+        B, L, C = volume.shape
+        W = self.input_width // 32
+        H = self.input_height // 32
+        volume = volume.view(B, H, W, C).permute(0, 3, 1, 2).contiguous()
         seg_mask = self.seg_mask(volume)
 
         cat = torch.cat([volume, seg_mask], dim=1)

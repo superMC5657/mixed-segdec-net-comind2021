@@ -50,8 +50,8 @@ class Config:
         if self.NUM_SEGMENTED is None:
             raise Exception("Missing NUM_SEGMENTED!")
         if self.DATASET == 'KSDD':
-            self.INPUT_WIDTH = 672#512
-            self.INPUT_HEIGHT = 2016#1408
+            self.INPUT_WIDTH = 448#512#672#
+            self.INPUT_HEIGHT = 1344#1408#2016#
             self.INPUT_CHANNELS = 1
 
             if self.TRAIN_NUM is None:
@@ -70,8 +70,8 @@ class Config:
             if self.FOLD is None:
                 raise Exception("Missing FOLD for DAGM dataset!")
         elif self.DATASET == 'STEEL':
-            self.INPUT_WIDTH = 1600
-            self.INPUT_HEIGHT = 256
+            self.INPUT_WIDTH = 1344#1600
+            self.INPUT_HEIGHT = 224#256
             self.INPUT_CHANNELS = 1
 
             self.VALIDATE_ON_TEST = False

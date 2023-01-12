@@ -3,6 +3,8 @@ import torch
 import torch.nn as nn
 from torch.nn import init
 from crossformer import CrossFormer
+# from resnet import ResNet
+# from test import resnet50
 
 BATCHNORM_TRACK_RUNNING_STATS = False
 BATCHNORM_MOVING_AVERAGE_DECAY = 0.9997
@@ -73,12 +75,13 @@ class SegDecNet(nn.Module):
         #                             _conv_block(64, 64, 5, 2),
         #                             nn.MaxPool2d(2),
         #                             _conv_block(64, 1024, 15, 7))
+        # self.volume = resnet50(include_top=False)
 
         self.volume = CrossFormer(img_size=[self.input_height, self.input_width],
                                   patch_size=[4, 8, 16, 32],
                                   in_chans=1,
-                                  embed_dim=128,
-                                  depths=[2, 2, 18, 2],
+                                  embed_dim=256,
+                                  depths=[2, 18],
                                   num_heads=[4, 8, 16, 32],
                                   group_size=[7, 7, 7, 7],
                                   mlp_ratio=4,
@@ -92,11 +95,11 @@ class SegDecNet(nn.Module):
                                   merge_size=[[2, 4], [2, 4], [2, 4]])
 
         self.seg_mask = nn.Sequential(
-            Conv2d_init(in_channels=1024, out_channels=1, kernel_size=1, padding=0, bias=False),
+            Conv2d_init(in_channels=512, out_channels=1, kernel_size=1, padding=0, bias=False),
             FeatureNorm(num_features=1, eps=0.001, include_bias=False))
 
         self.extractor = nn.Sequential(nn.MaxPool2d(kernel_size=2),
-                                       _conv_block(in_chanels=1025, out_chanels=8, kernel_size=5, padding=2),
+                                       _conv_block(in_chanels=513, out_chanels=8, kernel_size=5, padding=2),
                                        nn.MaxPool2d(kernel_size=2),
                                        _conv_block(in_chanels=8, out_chanels=16, kernel_size=5, padding=2),
                                        nn.MaxPool2d(kernel_size=2),
@@ -125,8 +128,8 @@ class SegDecNet(nn.Module):
         # volume = self.volume(input)
         volume = self.volume(input)
         B, L, C = volume.shape
-        W = self.input_width // 32
-        H = self.input_height // 32
+        W = self.input_width // 8
+        H = self.input_height // 8
         volume = volume.view(B, H, W, C).permute(0, 3, 1, 2).contiguous()
         seg_mask = self.seg_mask(volume)
 

@@ -536,12 +536,13 @@ class CrossFormer(nn.Module):
         self.layers = nn.ModuleList()
 
         num_patch_sizes = [len(patch_size)] + [len(m) for m in merge_size]
-        for i_layer in range(self.num_layers):
+        for index, i_layer in enumerate(range(self.num_layers)):
             patch_size_end = merge_size[i_layer] if i_layer < self.num_layers - 1 else None
             num_patch_size = num_patch_sizes[i_layer]
             layer = Stage(dim=int(embed_dim * 2 ** i_layer),  #64，
                                input_resolution=(patches_resolution[0] // (2 ** i_layer), #56
                                                  patches_resolution[1] // (2 ** i_layer)),
+                                                # if (index < 2) else (patches_resolution[0] // (2 ** 1), patches_resolution[1] // (2 ** 1)),
                                depth=depths[i_layer],#1
                                num_heads=num_heads[i_layer],#2
                                group_size=group_size[i_layer],#7
@@ -551,6 +552,7 @@ class CrossFormer(nn.Module):
                                drop_path=dpr[sum(depths[:i_layer]):sum(depths[:i_layer + 1])],
                                norm_layer=norm_layer,
                                downsample=PatchMerging if (i_layer < self.num_layers - 1) else None,
+                               # downsample=PatchMerging if (index < 1) else None,
                                use_checkpoint=use_checkpoint,
                                patch_size_end=patch_size_end,#[2,4]
                                num_patch_size=num_patch_size)#3136

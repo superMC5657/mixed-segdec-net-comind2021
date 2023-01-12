@@ -137,7 +137,7 @@ class Dataset(torch.utils.data.Dataset):
         dst_trf[mask == 0] = 1
         return np.array(dst_trf, dtype=np.float32)
 
-    def downsize(self, image: np.ndarray, downsize_factor: int = 32) -> np.ndarray:  #8 -> 32
+    def downsize(self, image: np.ndarray, downsize_factor: int = 8) -> np.ndarray:  #8 -> 32
         img_t = torch.from_numpy(np.expand_dims(image, 0 if len(image.shape) == 3 else (0, 1)).astype(np.float32))
         img_t = torch.nn.ReflectionPad2d(padding=(downsize_factor))(img_t)
         image_np = torch.nn.AvgPool2d(kernel_size=2 * downsize_factor + 1, stride=downsize_factor)(img_t).detach().numpy()
